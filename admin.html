@@ -577,8 +577,8 @@ const SESSION_KEY = 'studiobeauty_session';
    SUPABASE — preencha com seus dados
    supabase.com → seu projeto → Settings → API
 ============================================================ */
-const SUPABASE_URL  = 'COLE_AQUI_A_URL_DO_PROJETO';
-const SUPABASE_ANON = 'COLE_AQUI_A_CHAVE_ANON_PUBLIC';
+const SUPABASE_URL  = 'https://ddithxstvpgwkqckljze.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_HE13nXwAKYzqYmmbYdgVHA_Z-ujiiR7';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const SERVICES_LIST = [
@@ -837,7 +837,6 @@ async function renderBookingsTable() {
 
   document.getElementById('filterCount').textContent = `${bookings.length} registro${bookings.length!==1?'s':''}`;
 
-  const tbody = document.getElementById('bookingsTbody');
   if (!bookings.length) {
     tbody.innerHTML = `<tr><td colspan="9" class="table-empty"><i class="fa-solid fa-inbox" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>Nenhum agendamento encontrado.</td></tr>`;
     return;
@@ -876,31 +875,29 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function markDone(id) {
-  const list = loadBookings();
-  const b = list.find(x=>String(x.id)===String(id));
-  if (b) { b.done = true; saveBookings(list); renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline(); }
+async function markDone(id) {
+  await db.from('agendamentos').update({ done: true }).eq('id', id);
+  renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
-function cancelBooking(id) {
+async function cancelBooking(id) {
   if (!confirm('Cancelar este agendamento?')) return;
-  const list = loadBookings();
-  const b = list.find(x=>String(x.id)===String(id));
-  if (b) { b.cancelled = true; saveBookings(list); renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline(); }
+  await db.from('agendamentos').update({ cancelled: true }).eq('id', id);
+  renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
-function deleteBooking(id) {
+async function deleteBooking(id) {
   if (!confirm('Excluir permanentemente este agendamento? Isso não pode ser desfeito.')) return;
-  const list = loadBookings().filter(x=>String(x.id)!==String(id));
-  saveBookings(list); renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
+  await db.from('agendamentos').delete().eq('id', id);
+  renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
 /* ============================================================
    CLIENTS
 ============================================================ */
-function renderClients() {
+async function renderClients() {
   const query = (document.getElementById('filterClient').value||'').toLowerCase();
-  const bookings = loadBookings();
+  const bookings = await loadBookings();
 
   // Build unique clients map by phone
   const map = {};
@@ -963,7 +960,7 @@ document.getElementById('btnCloseModal').addEventListener('click', closeModal);
 document.getElementById('btnCancelModal').addEventListener('click', closeModal);
 document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
 
-document.getElementById('btnSaveBooking').addEventListener('click', ()=>{
+document.getElementById('btnSaveBooking').addEventListener('click', async ()=>{
   const name  = document.getElementById('mName').value.trim();
   const phone = document.getElementById('mPhone').value.trim();
   const date  = document.getElementById('mDate').value;
@@ -977,9 +974,13 @@ document.getElementById('btnSaveBooking').addEventListener('click', ()=>{
     msgEl.classList.add('error'); return;
   }
   const [svcName,dur,price] = svcVal.split('|');
-  const list = loadBookings();
-  list.push({ id:Date.now(), name, phone, date, time, duration:+dur, service:svcName, price });
-  saveBookings(list);
+  const { error } = await db.from('agendamentos').insert([{
+    name, phone, date, time, duration:+dur, service:svcName, price
+  }]);
+  if (error) {
+    msgEl.textContent='Erro ao salvar. Tente novamente.';
+    msgEl.classList.add('error'); return;
+  }
   closeModal();
   renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
   ['mName','mPhone','mDate','mTime'].forEach(id=>document.getElementById(id).value='');
@@ -989,8 +990,8 @@ document.getElementById('btnSaveBooking').addEventListener('click', ()=>{
 /* ============================================================
    EXPORT CSV
 ============================================================ */
-document.getElementById('btnExport').addEventListener('click', ()=>{
-  const bookings = loadBookings().sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+document.getElementById('btnExport').addEventListener('click', async ()=>{
+  const bookings = (await loadBookings()).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
   const rows = [['Nome','Telefone','Serviço','Data','Horário','Duração (min)','Valor','Status']];
   bookings.forEach(b=>rows.push([b.name, b.phone, b.service, formatDateBR(b.date), b.time, b.duration, b.price, getStatus(b)]));
   const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -1039,10 +1040,10 @@ document.getElementById('btnChangeUser').addEventListener('click', async ()=>{
   document.getElementById('newUsername').value='';
 });
 
-document.getElementById('btnClearAll').addEventListener('click', ()=>{
+document.getElementById('btnClearAll').addEventListener('click', async ()=>{
   if (!confirm('Tem certeza? Todos os agendamentos serão excluídos permanentemente.')) return;
   if (!confirm('Esta ação não pode ser desfeita. Confirmar exclusão de TODOS os agendamentos?')) return;
-  saveBookings([]);
+  await db.from('agendamentos').delete().not('id', 'is', null);
   renderStats(); renderTodayTimeline(); renderUpcomingTimeline(); renderBookingsTable(); renderClients();
   alert('Todos os agendamentos foram removidos.');
 });
