@@ -379,10 +379,11 @@
 
     /* ===== AUTH MODAL ===== */
     .auth-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; position: fixed; inset: 0; background: rgba(0,0,0,.45);
       z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
+      opacity: 0; pointer-events: none; transition: opacity .2s ease;
     }
-    .auth-overlay.open { display: flex; }
+    .auth-overlay.open { opacity: 1; pointer-events: auto; }
     .auth-modal {
       background: var(--white); border-radius: 20px; width: 100%; max-width: 420px;
       box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden;
@@ -483,10 +484,11 @@
 
     /* ===== RESCHEDULE MODAL ===== */
     .reschedule-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; position: fixed; inset: 0; background: rgba(0,0,0,.45);
       z-index: 1100; align-items: center; justify-content: center; padding: 1rem;
+      opacity: 0; pointer-events: none; transition: opacity .2s ease;
     }
-    .reschedule-overlay.open { display: flex; }
+    .reschedule-overlay.open { opacity: 1; pointer-events: auto; }
     .reschedule-modal {
       background: var(--white); border-radius: 16px; width: 100%; max-width: 400px;
       box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 1.5rem;
@@ -1394,15 +1396,19 @@
     }
     if (session?.user) {
       currentUser = session.user;
-      const { data: profile } = await db.from('profiles').select('*').eq('id', session.user.id).single();
-      currentUser.profile = profile;
+      // Atualiza header imediatamente com o que já temos
       renderAuthArea(currentUser);
-      if (pendingBookingAuth) {
-        pendingBookingAuth = false;
-        closeAuthModal();
-        renderConfirmStep();
-        goToStep(4);
-      }
+      // Busca perfil em paralelo e atualiza sem bloquear
+      db.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+        currentUser.profile = profile;
+        renderAuthArea(currentUser);
+        if (pendingBookingAuth) {
+          pendingBookingAuth = false;
+          closeAuthModal();
+          renderConfirmStep();
+          goToStep(4);
+        }
+      });
     } else {
       currentUser = null;
       renderAuthArea(null);
@@ -1453,7 +1459,7 @@
     const btn = document.getElementById('btnLogin');
     btn.disabled = true; btn.textContent = 'Entrando...';
 
-    const { error } = await db.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
     btn.disabled = false; btn.textContent = 'Entrar';
 
     if (error) {
@@ -1461,6 +1467,9 @@
       errEl.classList.add('show');
     } else {
       closeAuthModal();
+      // Atualiza header imediatamente sem esperar o onAuthStateChange
+      currentUser = data.user;
+      renderAuthArea(currentUser);
     }
   });
 
@@ -1546,13 +1555,19 @@
       errEl.textContent = 'Erro ao salvar. Tente novamente.';
       errEl.classList.add('show');
     } else {
-      okEl.textContent = 'Senha redefinida com sucesso!';
-      okEl.classList.add('show');
       document.getElementById('newPassInput').value = '';
       document.getElementById('newPassConfirm').value = '';
-      setTimeout(() => {
-        document.getElementById('newPassOverlay').classList.remove('open');
-      }, 2000);
+      document.getElementById('newPassOverlay').classList.remove('open');
+      // Força atualização de sessão após troca de senha
+      const { data: { session } } = await db.auth.getSession();
+      if (session?.user) {
+        currentUser = session.user;
+        renderAuthArea(currentUser);
+        db.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: profile }) => {
+          currentUser.profile = profile;
+          renderAuthArea(currentUser);
+        });
+      }
     }
   });
 
