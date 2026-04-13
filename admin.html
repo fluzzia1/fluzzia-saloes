@@ -932,19 +932,19 @@ function escHtml(s) {
 }
 
 async function markDone(id) {
-  await db.from('agendamentos').update({ done: true }).eq('id', id);
+  await adminFetch('PATCH', `/admin/booking/${id}`, { done: true });
   renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
 async function cancelBooking(id) {
   if (!confirm('Cancelar este agendamento?')) return;
-  await db.from('agendamentos').update({ cancelled: true }).eq('id', id);
+  await adminFetch('PATCH', `/admin/booking/${id}`, { cancelled: true });
   renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
 async function deleteBooking(id) {
   if (!confirm('Excluir permanentemente este agendamento? Isso não pode ser desfeito.')) return;
-  await db.from('agendamentos').delete().eq('id', id);
+  await adminFetch('DELETE', `/admin/booking/${id}`);
   renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
 }
 
@@ -1044,10 +1044,10 @@ document.getElementById('btnSaveBooking').addEventListener('click', async ()=>{
     msgEl.classList.add('error'); return;
   }
   const [svcName,dur,price] = svcVal.split('|');
-  const { error } = await db.from('agendamentos').insert([{
+  const r = await adminFetch('POST', '/admin/booking', {
     name, phone, date, time, duration:+dur, service:svcName, price
-  }]);
-  if (error) {
+  });
+  if (!r.ok) {
     msgEl.textContent='Erro ao salvar. Tente novamente.';
     msgEl.classList.add('error'); return;
   }
@@ -1289,6 +1289,18 @@ async function attemptLogin() {
   const auth = getAuth();
   if (auth && await sha256(u) === auth.userHash && await sha256(p) === auth.passHash) {
     sessionStorage.setItem(SESSION_KEY, '1');
+    // Obtém token de admin do servidor para operações com RLS bypass
+    try {
+      const r = await fetch('/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      if (r.ok) {
+        const { token } = await r.json();
+        sessionStorage.setItem('admin_token', token);
+      }
+    } catch(e) { console.warn('Admin token não obtido:', e); }
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appShell').classList.add('visible');
     initApp();
@@ -1297,6 +1309,17 @@ async function attemptLogin() {
     err.style.display = 'block';
     setTimeout(()=>err.style.display='none', 3000);
   }
+}
+
+function adminToken() { return sessionStorage.getItem('admin_token') || ''; }
+
+async function adminFetch(method, path, body) {
+  const r = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return r;
 }
 
 function initApp() {
