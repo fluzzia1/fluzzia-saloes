@@ -683,6 +683,25 @@
   </div>
 </div>
 
+<!-- ===== PHONE MODAL (Google users) ===== -->
+<div class="auth-overlay" id="phoneOverlay">
+  <div class="auth-modal">
+    <div class="auth-header">
+      <h3>Quase lá! 👋</h3>
+    </div>
+    <div class="auth-body">
+      <p style="font-size:.83rem;color:var(--text-muted);margin-bottom:1.2rem;">Para finalizar seu cadastro, informe seu WhatsApp. Ele será usado para confirmações de agendamento.</p>
+      <div class="auth-error" id="phoneError"></div>
+      <div class="auth-field">
+        <label>WhatsApp / Telefone</label>
+        <input class="auth-input" type="tel" id="phoneInput" placeholder="(XX) 9XXXX-XXXX"/>
+      </div>
+      <button class="btn-auth-submit" id="btnSavePhone">Salvar e continuar</button>
+      <p class="auth-switch" style="margin-top:.8rem;"><a id="btnSkipPhone" style="font-size:.78rem;color:var(--text-muted);font-weight:400;">Pular por agora</a></p>
+    </div>
+  </div>
+</div>
+
 <!-- ===== NEW PASSWORD MODAL ===== -->
 <div class="auth-overlay" id="newPassOverlay">
   <div class="auth-modal">
@@ -1497,6 +1516,11 @@
           currentUser.profile = profile;
         }
         renderAuthArea(currentUser);
+        // Se não tem telefone, pede antes de continuar
+        if (!currentUser.profile?.phone) {
+          openPhoneModal();
+          return;
+        }
         if (pendingBookingAuth) {
           pendingBookingAuth = false;
           closeAuthModal();
@@ -1520,6 +1544,47 @@
       options: { redirectTo: window.location.origin + window.location.pathname }
     });
   }
+
+  /* PHONE MODAL */
+  function openPhoneModal() {
+    document.getElementById('phoneOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('phoneInput').focus(), 100);
+  }
+  function closePhoneModal() {
+    document.getElementById('phoneOverlay').classList.remove('open');
+  }
+
+  document.getElementById('btnSavePhone').addEventListener('click', async () => {
+    const phone = document.getElementById('phoneInput').value.trim();
+    const errEl = document.getElementById('phoneError');
+    errEl.classList.remove('show');
+    if (!phone) { errEl.textContent = 'Informe seu WhatsApp.'; errEl.classList.add('show'); return; }
+
+    const btn = document.getElementById('btnSavePhone');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+
+    await db.from('profiles').update({ phone }).eq('id', currentUser.id);
+    if (currentUser.profile) currentUser.profile.phone = phone;
+
+    btn.disabled = false; btn.textContent = 'Salvar e continuar';
+    closePhoneModal();
+    if (pendingBookingAuth) {
+      pendingBookingAuth = false;
+      closeAuthModal();
+      renderConfirmStep();
+      goToStep(4);
+    }
+  });
+
+  document.getElementById('btnSkipPhone').addEventListener('click', () => {
+    closePhoneModal();
+    if (pendingBookingAuth) {
+      pendingBookingAuth = false;
+      closeAuthModal();
+      renderConfirmStep();
+      goToStep(4);
+    }
+  });
 
   function openAuthModal() {
     document.getElementById('authOverlay').classList.add('open');
