@@ -626,8 +626,8 @@
 /* ============================================================
    CONSTANTS & DATA
 ============================================================ */
-const AUTH_KEY    = 'studiobeauty_auth';
-const SESSION_KEY = 'studiobeauty_session';
+const AUTH_KEY    = 'fluzzia_admin_auth';
+const SESSION_KEY = 'fluzzia_admin_session';
 
 /* ============================================================
    SUPABASE — preencha com seus dados
@@ -698,13 +698,10 @@ function doLogout()   { sessionStorage.removeItem(SESSION_KEY); location.reload(
    BOOKINGS — Supabase
 ============================================================ */
 async function loadBookings() {
-  const { data, error } = await db
-    .from('agendamentos')
-    .select('*')
-    .order('date', { ascending: true })
-    .order('time', { ascending: true });
-  if (error) { console.error('Supabase loadBookings:', error); return []; }
-  return data || [];
+  const token = sessionStorage.getItem(SESSION_KEY);
+  const r = await fetch('/admin/bookings', { headers: { 'x-admin-token': token } });
+  if (!r.ok) return [];
+  return await r.json();
 }
 
 /* ============================================================

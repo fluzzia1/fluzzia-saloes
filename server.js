@@ -1,12 +1,30 @@
+require('dotenv').config();
 const express = require('express');
 const crypto  = require('crypto');
+const path    = require('path');
 const app     = express();
 const PORT    = process.env.PORT || 3000;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ddithxstvpgwkqckljze.supabase.co';
 
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, { index: false }));
 app.use(express.json());
+
+/* ============================================================
+   ROOT ROUTE — serve HTML correto conforme tipo do salão
+============================================================ */
+app.get('/', async (req, res) => {
+  try {
+    const slug = resolveSlug(req);
+    if (slug) {
+      const { data } = await supaFetch('GET', `saloes?slug=eq.${encodeURIComponent(slug)}&select=tipo`);
+      if (data?.[0]?.tipo === 'barbearia') return res.sendFile(path.join(__dirname, 'barbearia.html'));
+    }
+    res.sendFile(path.join(__dirname, 'index.html'));
+  } catch {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  }
+});
 
 /* ============================================================
    SUPABASE SERVICE ROLE HELPER
@@ -147,6 +165,16 @@ app.delete('/admin/booking/:id', adminMiddleware, async (req, res) => {
       : `agendamentos?id=eq.${req.params.id}`;
     const { ok } = await supaFetch('DELETE', filter);
     res.status(ok ? 200 : 500).json({ ok });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/admin/bookings', adminMiddleware, async (req, res) => {
+  try {
+    const filter = req.salao_id
+      ? `agendamentos?salao_id=eq.${req.salao_id}&order=date.asc,time.asc&select=*`
+      : `agendamentos?order=date.asc,time.asc&select=*`;
+    const { ok, data } = await supaFetch('GET', filter);
+    res.status(ok ? 200 : 500).json(data || []);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
