@@ -9,6 +9,15 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ddithxstvpgwkqckljze.s
 
 app.use(express.json());
 
+/* normaliza barras duplas/triplas → redirect 301 para URL limpa */
+app.use((req, res, next) => {
+  if (/\/{2,}/.test(req.path)) {
+    const clean = req.path.replace(/\/{2,}/g, '/');
+    return res.redirect(301, clean + req.url.slice(req.path.length));
+  }
+  next();
+});
+
 /* ============================================================
    ROOT ROUTE — serve HTML correto conforme tipo do salão
    (deve ficar ANTES do express.static)
