@@ -1118,7 +1118,7 @@
   let OPENING  = {};
   let SALON_ID = null;
 
-  const BREAK     = 10;
+  const BREAK     = 0;
   const SLOT_STEP = 15;
 
   const SUPABASE_URL  = 'https://ddithxstvpgwkqckljze.supabase.co';
@@ -1388,7 +1388,12 @@
       salao_id: SALON_ID
     }]);
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Agendamento';
-    if (error) { showAlert(alertEl, 'Erro ao salvar. Tente novamente.'); console.error(error); return; }
+    if (error) {
+      const msg = error.code === '23505'
+        ? 'Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.'
+        : 'Erro ao salvar. Tente novamente.';
+      showAlert(alertEl, msg); console.error(error); return;
+    }
     const userEmail = profile?.email || currentUser.email;
     if (userEmail) {
       fetch('/send-booking-email', {

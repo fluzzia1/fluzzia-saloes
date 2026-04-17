@@ -1338,7 +1338,10 @@
     btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirmar Agendamento';
 
     if (error) {
-      showAlert(alertEl, 'Erro ao salvar o agendamento. Verifique a conexão e tente novamente.');
+      const msg = error.code === '23505'
+        ? 'Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.'
+        : 'Erro ao salvar o agendamento. Verifique a conexão e tente novamente.';
+      showAlert(alertEl, msg);
       console.error(error);
       return;
     }
