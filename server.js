@@ -217,15 +217,16 @@ app.post('/send-booking-email', async (req, res) => {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_API_KEY) return res.status(500).json({ error: 'Serviço de email não configurado.' });
 
-  let salonNome = 'Studio Beauty', salonWa = '5531987899520', salonCidade = 'Horizonte — MG', emailFrom = 'contato@fluzzia.net';
+  let salonNome = 'Studio Beauty', salonWa = '5531987899520', salonCidade = 'Horizonte — MG', emailFrom = 'contato@fluzzia.net', salonTipo = 'salao';
   if (salao_id) {
-    const { data } = await supaFetch('GET', `saloes?id=eq.${salao_id}&select=nome,whatsapp,cidade,email_from`)
+    const { data } = await supaFetch('GET', `saloes?id=eq.${salao_id}&select=nome,whatsapp,cidade,email_from,tipo`)
       .catch(() => ({ data: null }));
     if (data?.[0]) {
       salonNome   = data[0].nome       || salonNome;
       salonWa     = data[0].whatsapp   || salonWa;
       salonCidade = data[0].cidade     || salonCidade;
       emailFrom   = data[0].email_from || emailFrom;
+      salonTipo   = data[0].tipo       || salonTipo;
     }
   }
 
@@ -234,7 +235,64 @@ app.post('/send-booking-email', async (req, res) => {
   const [y, mo, d] = (date || '').split('-');
   const dateBR = date ? `${d}/${mo}/${y}` : '—';
 
-  const html = `<!DOCTYPE html>
+  const isBarbearia = salonTipo === 'barbearia';
+
+  const html = isBarbearia ? `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#111;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#1a1a1a;border-radius:4px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.6);border:1px solid #2a2a2a;">
+        <tr>
+          <td style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a);padding:36px 32px 28px;text-align:center;border-bottom:2px solid #C4A25A;">
+            <p style="margin:0 0 12px;font-size:11px;color:#C4A25A;letter-spacing:4px;text-transform:uppercase;font-weight:600;">✂ Agendamento Confirmado</p>
+            <h1 style="margin:0;font-size:26px;color:#fff;font-weight:700;letter-spacing:1px;">${salonNome.toUpperCase()}</h1>
+            <p style="margin:10px 0 0;color:#888;font-size:13px;letter-spacing:1px;">Seu horário está reservado</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px;">
+            <p style="margin:0 0 24px;font-size:14px;color:#aaa;letter-spacing:.3px;">Olá, <strong style="color:#fff;">${name}</strong>. Confirmamos seu agendamento abaixo.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:4px;overflow:hidden;border:1px solid #2a2a2a;margin-bottom:24px;">
+              <tr><td style="padding:14px 18px;border-bottom:1px solid #2a2a2a;background:#111;">
+                <span style="font-size:10px;color:#C4A25A;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Serviço</span><br/>
+                <span style="font-size:15px;color:#fff;font-weight:600;">${service}</span>
+              </td></tr>
+              <tr><td style="padding:14px 18px;border-bottom:1px solid #2a2a2a;background:#111;">
+                <span style="font-size:10px;color:#C4A25A;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Data</span><br/>
+                <span style="font-size:15px;color:#fff;font-weight:600;">${dateBR}</span>
+              </td></tr>
+              <tr><td style="padding:14px 18px;border-bottom:1px solid #2a2a2a;background:#111;">
+                <span style="font-size:10px;color:#C4A25A;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Horário</span><br/>
+                <span style="font-size:15px;color:#fff;font-weight:600;">${time} (${durStr})</span>
+              </td></tr>
+              <tr><td style="padding:14px 18px;background:#111;">
+                <span style="font-size:10px;color:#C4A25A;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Valor</span><br/>
+                <span style="font-size:15px;color:#fff;font-weight:600;">${price || 'A confirmar'}</span>
+              </td></tr>
+            </table>
+            <p style="margin:0 0 24px;font-size:13px;color:#666;line-height:1.7;">Para remarcar ou cancelar, acesse o site e vá em <strong style="color:#aaa;">Meus Agendamentos</strong>.</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td align="center">
+                <a href="https://wa.me/${salonWa}" style="display:inline-block;background:#25D366;color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:2px;letter-spacing:1px;text-transform:uppercase;">
+                  💬 Falar no WhatsApp
+                </a>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#0a0a0a;padding:20px 32px;text-align:center;border-top:1px solid #2a2a2a;">
+            <p style="margin:0;font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;">${salonNome} — ${salonCidade}</p>
+            <p style="margin:6px 0 0;font-size:11px;color:#333;">Este email foi enviado automaticamente. Não responda.</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>` : `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;padding:0;background:#f4f0f1;font-family:'Helvetica Neue',Arial,sans-serif;">
