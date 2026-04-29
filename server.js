@@ -28,17 +28,25 @@ const TIPO_HTML = {
   salao:     'studiobeauty.html',
 };
 
+/* fallback local: slug → tipo (usado quando o banco não está disponível) */
+const SLUG_TIPO = {
+  studiobeauty: 'salao',
+  barbeariabh:  'barbearia',
+};
+
 app.get('/', async (req, res) => {
-  try {
-    const slug = resolveSlug(req);
-    if (slug) {
+  const slug = resolveSlug(req);
+  if (slug) {
+    let tipo;
+    try {
       const { data } = await supaFetch('GET', `saloes?slug=eq.${encodeURIComponent(slug)}&select=tipo`);
-      const tipo = data?.[0]?.tipo;
-      const file = TIPO_HTML[tipo];
-      if (file) return res.sendFile(path.join(__dirname, file));
+      tipo = data?.[0]?.tipo;
+    } catch (e) {
+      console.error('Root route DB error, usando mapa local:', e.message);
     }
-  } catch (e) {
-    console.error('Root route error:', e.message);
+    if (!tipo) tipo = SLUG_TIPO[slug];
+    const file = TIPO_HTML[tipo];
+    if (file) return res.sendFile(path.join(__dirname, file));
   }
   res.sendFile(path.join(__dirname, 'studiobeauty.html'));
 });
