@@ -546,15 +546,14 @@
     }
     .social-link:hover { border-color: var(--gold); color: var(--gold); }
 
-    .map-placeholder {
+    .map-container {
       background: var(--bg3);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 3rem;
-      text-align: center;
-      color: var(--text-muted);
+      overflow: hidden;
+      height: 380px;
     }
-    .map-placeholder i { font-size: 2.5rem; color: var(--gold); margin-bottom: 1rem; display: block; }
+    .map-container iframe { width: 100%; height: 100%; border: 0; display: block; }
 
     /* ===== FOOTER ===== */
     footer {
@@ -1002,9 +1001,8 @@
           <a id="igLink" href="#" target="_blank" class="social-link" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
         </div>
       </div>
-      <div class="map-placeholder">
-        <i class="fa-solid fa-map-location-dot"></i>
-        <p id="mapAddress">—</p>
+      <div class="map-container">
+        <iframe id="mapIframe" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3750.7656731356824!2d-43.93889762401437!3d-19.934277038443184!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xa699dc864847c5%3A0x58bf823e363083bf!2sSeu%20Elias%20Savassi!5e0!3m2!1spt-BR!2sbr!4v1777497459987!5m2!1spt-BR!2sbr" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
   </div>
@@ -1185,7 +1183,6 @@
       // Contato
       if (salao.endereco) {
         document.getElementById('contactAddress').innerHTML = `${salao.endereco}<br>${salao.bairro} — ${salao.cidade}`;
-        document.getElementById('mapAddress').textContent = `${salao.endereco}, ${salao.bairro}`;
       }
       document.getElementById('footerCidade').textContent = salao.cidade || '';
 
