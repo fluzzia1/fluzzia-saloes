@@ -211,7 +211,8 @@
       outline: none;
     }
     .form-group input:focus, .form-group select:focus { border-color: var(--rose); }
-    .form-group input[type="date"] { cursor: pointer; }
+    .form-group input[type="date"] { cursor: pointer; color-scheme: light; }
+    .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
     .time-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: .6rem; margin-top: .5rem; }
     .time-slot {
@@ -762,7 +763,7 @@
 <section id="hero">
   <div class="hero-inner">
     <div class="hero-content">
-      <div class="hero-badge" id="heroBadge"><i class="fa-solid fa-star"></i> Studio Beauty — Horizonte, MG</div>
+      <div class="hero-badge" id="heroBadge"><i class="fa-solid fa-star"></i> Studio Beauty — Belo Horizonte, MG</div>
       <h1 class="hero-title">Beleza que <em>transforma</em> o seu dia</h1>
       <p class="hero-desc">Cabelo, unhas, sobrancelhas e muito mais. Agende online e venha se cuidar!</p>
       <div class="hero-actions">
@@ -937,7 +938,7 @@
             <div class="contact-item-icon"><i class="fa-solid fa-location-dot"></i></div>
             <div class="contact-item-text">
               <h4>Endereço</h4>
-              <p id="contactAddress">Rua João Gualberto Costa, 198<br>Bairro Vila Santa Luzia — Horizonte, MG</p>
+              <p id="contactAddress">Rua João Gualberto Costa, 198<br>Bairro Vila Santa Luzia — Belo Horizonte, MG</p>
             </div>
           </div>
           <div class="contact-item">
@@ -968,12 +969,12 @@
         <div class="map-placeholder">
           <i class="fa-solid fa-map-location-dot"></i>
           <p>Rua João Gualberto Costa, 198</p>
-          <p style="font-size:.8rem; color:var(--text-muted);">Vila Santa Luzia — Horizonte, MG</p>
+          <p style="font-size:.8rem; color:var(--text-muted);">Vila Santa Luzia — Belo Horizonte, MG</p>
         </div>
         <div class="map-address">
           <p>
             <i class="fa-solid fa-location-dot"></i>
-            Rua João Gualberto Costa, 198 — Bairro Vila Santa Luzia, Horizonte — MG
+            Rua João Gualberto Costa, 198 — Bairro Vila Santa Luzia, Belo Horizonte — MG
           </p>
         </div>
       </div>
@@ -989,7 +990,7 @@
         <div class="logo">
           <img src="saloes/studio-beauty/logo.png" alt="Studio Beauty" class="logo-img" style="height:64px;" />
         </div>
-        <p>Horizonte — MG</p>
+        <p>Belo Horizonte — MG</p>
       </div>
       <div class="footer-col">
         <h4>Serviços</h4>
@@ -1014,7 +1015,6 @@
     <div class="footer-bottom">
       <span>&copy; 2025 Studio Beauty. Todos os direitos reservados.</span>
       <span>Instagram: <a href="https://www.instagram.com/moreira.irineia" target="_blank">@moreira.irineia</a></span>
-      <a href="admin.html" style="opacity:.35; font-size:.7rem; color:rgba(255,255,255,.4);">&#9881; Admin</a>
     </div>
   </div>
 </footer>
