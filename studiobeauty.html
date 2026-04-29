@@ -276,12 +276,7 @@
       background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
       overflow: hidden; box-shadow: 0 4px 20px var(--shadow);
     }
-    .map-placeholder {
-      background: linear-gradient(145deg, var(--rose-light), var(--gold-light));
-      height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
-    }
-    .map-placeholder i { font-size: 2.5rem; color: var(--rose); }
-    .map-placeholder p { font-size: .9rem; color: var(--text); font-weight: 500; }
+    .map-embed { height: 260px; display: block; width: 100%; border: 0; }
     .map-address { padding: 1.2rem 1.4rem; }
     .map-address p { font-size: .88rem; color: var(--text-muted); display: flex; gap: 6px; align-items: flex-start; }
     .map-address i { color: var(--rose); flex-shrink: 0; margin-top: 3px; }
@@ -966,11 +961,7 @@
         </div>
       </div>
       <div class="map-card">
-        <div class="map-placeholder">
-          <i class="fa-solid fa-map-location-dot"></i>
-          <p>Rua João Gualberto Costa, 198</p>
-          <p style="font-size:.8rem; color:var(--text-muted);">Vila Santa Luzia — Belo Horizonte, MG</p>
-        </div>
+        <iframe class="map-embed" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d278.87781869958815!2d-44.019151267968866!3d-19.877250118439353!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xa69157ebb8c65d%3A0xe707315029452eb6!2sR.%20Jo%C3%A3o%20Gualberto%20Costa%2C%20198%20-%20Vila%20Santa%20Luzia%2C%20Contagem%20-%20MG%2C%2032110-460!5e0!3m2!1spt-BR!2sbr!4v1777498443609!5m2!1spt-BR!2sbr" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         <div class="map-address">
           <p>
             <i class="fa-solid fa-location-dot"></i>
