@@ -353,6 +353,16 @@
     .btn-add:hover{background:var(--rose-dark);}
     .action-bar{display:flex;gap:.6rem;align-items:center;}
 
+    /* ===== EDIÇÃO DE PREÇO INLINE ===== */
+    .td-price-cell { white-space: nowrap; }
+    .td-price-cell .btn-icon { opacity: 0; transition: opacity .15s; vertical-align: middle; margin-left: 2px; }
+    tr:hover .td-price-cell .btn-icon { opacity: 1; }
+    .price-edit-wrap { display: flex; align-items: center; gap: 4px; }
+    .price-edit-input {
+      width: 130px; padding: 4px 8px; border: 1.5px solid var(--rose);
+      border-radius: 6px; font-size: .82rem; font-family: 'Poppins', sans-serif;
+      color: var(--dark); outline: none;
+    }
     /* ===== BLOQUEIOS ===== */
     .bloqueio-list { display: grid; gap: .7rem; }
     .bloqueio-item {
@@ -977,7 +987,10 @@ async function renderBookingsTable() {
         <td>${formatDateBR(b.date)}</td>
         <td>${b.time||'—'}</td>
         <td>${formatDuration(b.duration)}</td>
-        <td>${escHtml(b.price||'—')}</td>
+        <td id="price_${b.id}" class="td-price-cell">
+          <span class="price-display">${escHtml(b.price||'—')}</span>
+          <button class="btn-icon" title="Editar valor" onclick="editPrice('${b.id}','${escHtml(b.price||'')}')"><i class="fa-solid fa-pen" style="font-size:.75rem;"></i></button>
+        </td>
         <td>${badgeHTML(status)}</td>
         <td>
           <div style="display:flex;gap:4px;">
@@ -1278,6 +1291,40 @@ async function renderFaturamento() {
       </div>
     `).join('')}
   `;
+}
+
+/* ============================================================
+   EDIÇÃO DE PREÇO INLINE
+============================================================ */
+function editPrice(id, currentPrice) {
+  const cell = document.getElementById(`price_${id}`);
+  if (!cell) return;
+  cell.innerHTML = `
+    <div class="price-edit-wrap">
+      <input class="price-edit-input" id="priceInput_${id}" value="${escHtml(currentPrice)}" placeholder="ex: R$ 150,00"/>
+      <button class="btn-icon done-btn" title="Salvar" onclick="savePrice('${id}')"><i class="fa-solid fa-check"></i></button>
+      <button class="btn-icon" title="Cancelar" onclick="renderBookingsTable()"><i class="fa-solid fa-xmark"></i></button>
+    </div>`;
+  const input = document.getElementById(`priceInput_${id}`);
+  input.focus();
+  input.select();
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') savePrice(id);
+    if (e.key === 'Escape') renderBookingsTable();
+  });
+}
+
+async function savePrice(id) {
+  const input = document.getElementById(`priceInput_${id}`);
+  if (!input) return;
+  const preco = input.value.trim();
+  const r = await adminFetch('PATCH', `/admin/booking/${id}`, { price: preco });
+  if (r.ok) {
+    clearBookingsCache();
+    renderBookingsTable();
+  } else {
+    input.style.borderColor = 'var(--red)';
+  }
 }
 
 /* ============================================================
