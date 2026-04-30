@@ -197,12 +197,97 @@ app.post('/admin/booking', adminMiddleware, async (req, res) => {
 app.patch('/admin/settings', adminMiddleware, async (req, res) => {
   try {
     if (!req.salao_id) return res.status(400).json({ error: 'Sessão sem salão vinculado.' });
-    const { admin_user, admin_pass } = req.body;
+    const allowed = ['admin_user', 'admin_pass', 'cidade', 'horarios'];
     const updates = {};
-    if (admin_user) updates.admin_user = admin_user;
-    if (admin_pass) updates.admin_pass = admin_pass;
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
     if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nada para atualizar.' });
     const { ok } = await supaFetch('PATCH', `saloes?id=eq.${req.salao_id}`, updates);
+    res.status(ok ? 200 : 500).json({ ok });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ============================================================
+   SERVIÇOS — admin pode atualizar nome/preço/duração
+============================================================ */
+app.patch('/admin/servico/:id', adminMiddleware, async (req, res) => {
+  try {
+    const allowed = ['nome', 'preco', 'duracao'];
+    const updates = {};
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nada para atualizar.' });
+    const filter = req.salao_id
+      ? `servicos?id=eq.${req.params.id}&salao_id=eq.${req.salao_id}`
+      : `servicos?id=eq.${req.params.id}`;
+    const { ok } = await supaFetch('PATCH', filter, updates);
+    res.status(ok ? 200 : 500).json({ ok });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/admin/combo/:id', adminMiddleware, async (req, res) => {
+  try {
+    const allowed = ['nome', 'preco', 'duracao'];
+    const updates = {};
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nada para atualizar.' });
+    const filter = req.salao_id
+      ? `combos?id=eq.${req.params.id}&salao_id=eq.${req.salao_id}`
+      : `combos?id=eq.${req.params.id}`;
+    const { ok } = await supaFetch('PATCH', filter, updates);
+    res.status(ok ? 200 : 500).json({ ok });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ============================================================
+   BLOQUEIOS — congelar horários ou dias inteiros
+============================================================ */
+
+// Rota pública: retorna bloqueios de uma data (usado pelo site)
+app.get('/bloqueios', async (req, res) => {
+  try {
+    const { salao_id, date } = req.query;
+    if (!salao_id || !date) return res.json([]);
+    const { ok, data } = await supaFetch('GET',
+      `bloqueios?salao_id=eq.${salao_id}&data=eq.${date}&select=id,dia_inteiro,hora_inicio,hora_fim,motivo`
+    );
+    res.status(ok ? 200 : 500).json(data || []);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: listar bloqueios do salão
+app.get('/admin/bloqueios', adminMiddleware, async (req, res) => {
+  try {
+    const filter = req.salao_id
+      ? `bloqueios?salao_id=eq.${req.salao_id}&order=data.asc,hora_inicio.asc&select=*`
+      : `bloqueios?order=data.asc,hora_inicio.asc&select=*`;
+    const { ok, data } = await supaFetch('GET', filter);
+    res.status(ok ? 200 : 500).json(data || []);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: criar bloqueio
+app.post('/admin/bloqueio', adminMiddleware, async (req, res) => {
+  try {
+    if (!req.salao_id) return res.status(400).json({ error: 'Sessão sem salão vinculado.' });
+    const { data: dt, hora_inicio, hora_fim, dia_inteiro, motivo } = req.body;
+    if (!dt) return res.status(400).json({ error: 'Data obrigatória.' });
+    const body = { salao_id: req.salao_id, data: dt, dia_inteiro: !!dia_inteiro, motivo: motivo || null };
+    if (!dia_inteiro) {
+      if (!hora_inicio || !hora_fim) return res.status(400).json({ error: 'Informe hora_inicio e hora_fim.' });
+      body.hora_inicio = hora_inicio;
+      body.hora_fim    = hora_fim;
+    }
+    const { ok } = await supaFetch('POST', 'bloqueios', body);
+    res.status(ok ? 201 : 500).json({ ok });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: remover bloqueio
+app.delete('/admin/bloqueio/:id', adminMiddleware, async (req, res) => {
+  try {
+    const filter = req.salao_id
+      ? `bloqueios?id=eq.${req.params.id}&salao_id=eq.${req.salao_id}`
+      : `bloqueios?id=eq.${req.params.id}`;
+    const { ok } = await supaFetch('DELETE', filter);
     res.status(ok ? 200 : 500).json({ ok });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
