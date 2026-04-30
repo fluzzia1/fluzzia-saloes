@@ -212,7 +212,8 @@
       outline: none;
     }
     .form-group input:focus, .form-group select:focus { border-color: var(--rose); }
-    .form-group input[type="date"] { cursor: pointer; }
+    .form-group input[type="date"] { cursor: pointer; color-scheme: light; }
+    .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
     .time-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: .6rem; margin-top: .5rem; }
     .time-slot {
@@ -276,12 +277,7 @@
       background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
       overflow: hidden; box-shadow: 0 4px 20px var(--shadow);
     }
-    .map-placeholder {
-      background: linear-gradient(145deg, var(--rose-light), var(--gold-light));
-      height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
-    }
-    .map-placeholder i { font-size: 2.5rem; color: var(--rose); }
-    .map-placeholder p { font-size: .9rem; color: var(--text); font-weight: 500; }
+    .map-embed { height: 260px; display: block; width: 100%; border: 0; }
     .map-address { padding: 1.2rem 1.4rem; }
     .map-address p { font-size: .88rem; color: var(--text-muted); display: flex; gap: 6px; align-items: flex-start; }
     .map-address i { color: var(--rose); flex-shrink: 0; margin-top: 3px; }
