@@ -1012,7 +1012,6 @@ async function cancelBooking(id) {
 }
 
 async function deleteBooking(id) {
-  if (!confirm('Excluir permanentemente este agendamento? Isso não pode ser desfeito.')) return;
   await adminFetch('DELETE', `/admin/booking/${id}`);
   clearBookingsCache();
   renderBookingsTable(); renderStats(); renderTodayTimeline(); renderUpcomingTimeline();
