@@ -118,7 +118,7 @@
 
     /* ===== ABOUT STRIP ===== */
     .about-strip { background: #06030A; padding: 40px 24px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .about-strip .container { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; text-align: center; }
+    .about-strip .container { display: grid; grid-template-columns: repeat(2,1fr); gap: 2rem; text-align: center; }
     .about-item i { font-size: 1.8rem; color: var(--gold); margin-bottom: .6rem; }
     .about-item h3 { color: #fff; font-family: 'Poppins', sans-serif; font-size: .95rem; font-weight: 600; }
     .about-item p { color: rgba(255,255,255,.6); font-size: .82rem; }
@@ -763,7 +763,7 @@
 <section id="hero">
   <div class="hero-inner">
     <div class="hero-content">
-      <div class="hero-badge" id="heroBadge"><i class="fa-solid fa-star"></i> Studio Beauty — Horizonte, MG</div>
+      <div class="hero-badge" id="heroBadge"><i class="fa-solid fa-star"></i> Studio Beauty — Contagem, MG</div>
       <h1 class="hero-title">Beleza que <em>transforma</em> o seu dia</h1>
       <p class="hero-desc">Cabelo, unhas, sobrancelhas e muito mais. Agende online e venha se cuidar!</p>
       <div class="hero-actions">
@@ -785,10 +785,6 @@
 <!-- ===== ABOUT STRIP ===== -->
 <div class="about-strip">
   <div class="container">
-    <div class="about-item">
-      <i class="fa-solid fa-award"></i>
-      <h3>Profissionais Qualificadas</h3>
-    </div>
     <div class="about-item">
       <i class="fa-solid fa-heart"></i>
       <h3>Atendimento Personalizado</h3>
@@ -814,9 +810,13 @@
     <h2 class="section-title">Combos Especiais</h2>
     <div class="combo-notice">
       <i class="fa-solid fa-calendar-days"></i>
-      Disponível de segunda a quarta-feira
+      Disponível de segunda a quarta-feira, das 09h30 às 18h00
     </div>
     <div class="combos-grid" id="combosGrid"></div>
+    <div class="combo-notice" style="margin-top:1.2rem; border-color:var(--rose); max-width:520px; margin-left:auto; margin-right:auto;">
+      <i class="fa-solid fa-scissors" style="color:var(--rose);"></i>
+      O valor pode sofrer alteração de acordo com o tamanho do cabelo
+    </div>
   </div>
 </section>
 
@@ -938,7 +938,7 @@
             <div class="contact-item-icon"><i class="fa-solid fa-location-dot"></i></div>
             <div class="contact-item-text">
               <h4>Endereço</h4>
-              <p id="contactAddress">Rua João Gualberto Costa, 198<br>Bairro Vila Santa Luzia — Horizonte, MG</p>
+              <p id="contactAddress">Rua João Gualberto Costa, 198<br>Bairro Vila Santa Luzia — Contagem, MG</p>
             </div>
           </div>
           <div class="contact-item">
@@ -969,12 +969,12 @@
         <div class="map-placeholder">
           <i class="fa-solid fa-map-location-dot"></i>
           <p>Rua João Gualberto Costa, 198</p>
-          <p style="font-size:.8rem; color:var(--text-muted);">Vila Santa Luzia — Horizonte, MG</p>
+          <p style="font-size:.8rem; color:var(--text-muted);">Vila Santa Luzia — Contagem, MG</p>
         </div>
         <div class="map-address">
           <p>
             <i class="fa-solid fa-location-dot"></i>
-            Rua João Gualberto Costa, 198 — Bairro Vila Santa Luzia, Horizonte — MG
+            Rua João Gualberto Costa, 198 — Bairro Vila Santa Luzia, Contagem — MG
           </p>
         </div>
       </div>
@@ -990,7 +990,7 @@
         <div class="logo">
           <img src="saloes/studio-beauty/logo.png" alt="Studio Beauty" class="logo-img" style="height:64px;" />
         </div>
-        <p>Horizonte — MG</p>
+        <p>Contagem — MG</p>
       </div>
       <div class="footer-col">
         <h4>Serviços</h4>
@@ -1084,35 +1084,51 @@
 
   /* ======================================
      GENERATE TIME SLOTS (async — busca no Supabase)
+     overrideOpen: hora mínima opcional (ex: '09:30' para combos)
   ====================================== */
-  async function getAvailableSlots(dateStr, serviceDuration) {
+  async function getAvailableSlots(dateStr, serviceDuration, overrideOpen) {
     const dow   = getDayOfWeek(dateStr);
     const hours = OPENING[dow];
     if (!hours) return [];
 
-    const openMin  = toMinutes(hours.open);
+    const openMin  = toMinutes(overrideOpen || hours.open);
     const closeMin = toMinutes(hours.close);
 
-    // Busca agendamentos existentes para a data no Supabase
-    let slotQuery = db.from('agendamentos').select('time, duration').eq('date', dateStr).eq('cancelled', false);
-    if (SALON_ID) slotQuery = slotQuery.eq('salao_id', SALON_ID);
-    const { data: bookings } = await slotQuery;
+    // Busca agendamentos e bloqueios em paralelo
+    const bookingQuery = db.from('agendamentos').select('time, duration').eq('date', dateStr).eq('cancelled', false);
+    const slotQuery    = SALON_ID ? bookingQuery.eq('salao_id', SALON_ID) : bookingQuery;
 
-    const existing = bookings || [];
-    const slots    = [];
-    let slotStart  = openMin;
+    const [{ data: bookings }, bloqueiosResp] = await Promise.all([
+      slotQuery,
+      fetch(`/bloqueios?salao_id=${SALON_ID}&date=${dateStr}`).then(r => r.ok ? r.json() : []).catch(() => [])
+    ]);
+
+    // Verifica bloqueio de dia inteiro
+    const diaInteiro = bloqueiosResp.some(b => b.dia_inteiro);
+    if (diaInteiro) return [];
+
+    const bloqueios = bloqueiosResp.filter(b => !b.dia_inteiro && b.hora_inicio && b.hora_fim);
+    const existing  = bookings || [];
+    const slots     = [];
+    let slotStart   = openMin;
 
     const todayStr = new Date().toISOString().split('T')[0];
     const isToday  = dateStr === todayStr;
     const nowMin   = isToday ? new Date().getHours() * 60 + new Date().getMinutes() + 30 : -1;
 
     while (slotStart + serviceDuration <= closeMin) {
-      const overlap = isToday && slotStart < nowMin ? true : existing.some(b => {
+      const pastNow  = isToday && slotStart < nowMin;
+      const booked   = existing.some(b => {
         const bStart = toMinutes((b.time || '').substring(0, 5));
         const bEnd   = bStart + b.duration + BREAK;
         return slotStart < bEnd && (slotStart + serviceDuration + BREAK) > bStart;
       });
-      slots.push({ time: toTimeStr(slotStart), busy: overlap });
+      const blocked  = bloqueios.some(b => {
+        const bStart = toMinutes(b.hora_inicio.substring(0, 5));
+        const bEnd   = toMinutes(b.hora_fim.substring(0, 5));
+        return slotStart < bEnd && (slotStart + serviceDuration) > bStart;
+      });
+      slots.push({ time: toTimeStr(slotStart), busy: pastNow || booked || blocked });
       slotStart += SLOT_STEP;
     }
 
@@ -1180,7 +1196,7 @@
   const today = new Date();
   inputDate.min = today.toISOString().split('T')[0];
 
-  document.getElementById('btnStep1').addEventListener('click', () => {
+  document.getElementById('btnStep1').addEventListener('click', async () => {
     const alertEl = document.getElementById('alertDate');
     const val = inputDate.value;
     if (!val) { showAlert(alertEl, 'Por favor, selecione uma data.'); return; }
@@ -1193,6 +1209,20 @@
     const chosen = new Date(y, mo - 1, d);
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     if (chosen < todayDate) { showAlert(alertEl, 'Não é possível agendar para datas passadas.'); return; }
+
+    // Verifica bloqueio de dia inteiro
+    if (SALON_ID) {
+      try {
+        const resp = await fetch(`/bloqueios?salao_id=${SALON_ID}&date=${val}`);
+        if (resp.ok) {
+          const bloqs = await resp.json();
+          if (bloqs.some(b => b.dia_inteiro)) {
+            showAlert(alertEl, 'Este dia está bloqueado para agendamentos. Escolha outra data.');
+            return;
+          }
+        }
+      } catch(e) { /* ignora erro de rede */ }
+    }
 
     alertEl.classList.remove('show');
     state.date = val;
@@ -1264,7 +1294,8 @@
 
     container.innerHTML = '<div class="no-slots"><i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem;color:var(--rose);"></i><br>Verificando disponibilidade...</div>';
 
-    const slots = await getAvailableSlots(state.date, state.service.duration);
+    const overrideOpen = state.service.isCombo ? '09:30' : null;
+    const slots = await getAvailableSlots(state.date, state.service.duration, overrideOpen);
 
     if (slots.length === 0) {
       container.innerHTML = '<div class="no-slots"><i class="fa-solid fa-calendar-xmark" style="font-size:2rem;color:var(--border);margin-bottom:.5rem;"></i><br>Nenhum horário disponível para esta data e serviço.</div>';

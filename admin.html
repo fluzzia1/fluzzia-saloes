@@ -353,6 +353,47 @@
     .btn-add:hover{background:var(--rose-dark);}
     .action-bar{display:flex;gap:.6rem;align-items:center;}
 
+    /* ===== BLOQUEIOS ===== */
+    .bloqueio-list { display: grid; gap: .7rem; }
+    .bloqueio-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: .8rem 1rem; background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      border-left: 3px solid var(--rose);
+    }
+    .bloqueio-info { flex: 1; }
+    .bloqueio-date { font-size: .88rem; font-weight: 700; color: var(--dark); }
+    .bloqueio-time { font-size: .78rem; color: var(--muted); }
+    .bloqueio-motivo { font-size: .75rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+    .bloqueio-empty { text-align: center; color: var(--muted); padding: 1.5rem; font-size: .88rem; }
+    .tag-dia-inteiro {
+      font-size: .68rem; font-weight: 700; letter-spacing: .5px;
+      background: var(--rose-light); color: var(--rose);
+      padding: 2px 8px; border-radius: 50px; text-transform: uppercase;
+    }
+    /* ===== SERVIÇOS EDITOR ===== */
+    .svc-edit-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    .svc-edit-row:last-child { border-bottom: none; }
+    .svc-edit-name { flex: 1; font-size: .87rem; font-weight: 600; color: var(--dark); }
+    .svc-edit-input {
+      width: 160px; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .84rem; color: var(--dark); font-family: 'Poppins', sans-serif; outline: none;
+      transition: border-color .2s;
+    }
+    .svc-edit-input:focus { border-color: var(--rose); }
+    .btn-svc-save {
+      background: var(--rose-light); color: var(--rose); border: none;
+      border-radius: 8px; padding: 6px 12px; font-size: .78rem; font-weight: 600;
+      cursor: pointer; font-family: 'Poppins', sans-serif; transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn-svc-save:hover { background: var(--border); }
+    .svc-saved-ok {
+      font-size: .72rem; color: var(--green); display: none; margin-left: 4px;
+    }
     /* ===== RESPONSIVE ===== */
     @media(max-width:900px){
       .stats-grid{grid-template-columns:repeat(2,1fr);}
@@ -405,6 +446,8 @@
       <div class="nav-item" data-view="agenda"><i class="fa-solid fa-calendar-days"></i> Agendamentos</div>
       <div class="nav-item" data-view="clientes"><i class="fa-solid fa-users"></i> Clientes</div>
       <div class="nav-item" data-view="faturamento"><i class="fa-solid fa-dollar-sign"></i> Faturamento</div>
+      <div class="nav-item" data-view="bloqueios"><i class="fa-solid fa-lock"></i> Bloqueios</div>
+      <div class="nav-item" data-view="servicos"><i class="fa-solid fa-scissors"></i> Serviços</div>
       <div class="nav-label" style="margin-top:.6rem;">Sistema</div>
       <div class="nav-item" data-view="configuracoes"><i class="fa-solid fa-gear"></i> Configurações</div>
       <a class="nav-item" href="/" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Site</a>
@@ -545,6 +588,89 @@
         <!-- Detalhamento por serviço -->
         <div class="fat-breakdown" id="fatBreakdown"></div>
         <p class="fat-note">* Serviços com valor "A partir de" usam o valor mínimo. Serviços "A confirmar" não são somados.</p>
+      </div>
+
+      <!-- ===== BLOQUEIOS ===== -->
+      <div class="view" id="viewBloqueios">
+        <div class="section-card" style="margin-bottom:1.5rem;">
+          <div class="section-card-header">
+            <span class="section-card-title"><i class="fa-solid fa-lock"></i> Congelar Horário ou Dia</span>
+          </div>
+          <div class="section-card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+              <div class="form-group">
+                <label>Data *</label>
+                <input class="form-input" type="date" id="bloqData"/>
+              </div>
+              <div class="form-group">
+                <label>Tipo *</label>
+                <select class="form-input" id="bloqTipo" onchange="toggleBloqHours()">
+                  <option value="dia">Dia inteiro</option>
+                  <option value="hora">Horário específico</option>
+                </select>
+              </div>
+            </div>
+            <div id="bloqHoursFields" style="display:none;grid-template-columns:1fr 1fr;gap:1rem;">
+              <div class="form-group">
+                <label>Início</label>
+                <input class="form-input" type="time" id="bloqInicio" step="900"/>
+              </div>
+              <div class="form-group">
+                <label>Fim</label>
+                <input class="form-input" type="time" id="bloqFim" step="900"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Motivo (opcional)</label>
+              <input class="form-input" id="bloqMotivo" placeholder="ex: Feriado, Folga, Curso..."/>
+            </div>
+            <div class="alert-msg" id="bloqMsg"></div>
+            <button class="btn-primary" id="btnAddBloqueio" style="margin-top:.5rem;">
+              <i class="fa-solid fa-lock"></i> Bloquear
+            </button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title"><i class="fa-solid fa-list"></i> Bloqueios Cadastrados</span>
+            <button class="btn-period" onclick="renderBloqueios()" style="padding:5px 12px;font-size:.75rem;">
+              <i class="fa-solid fa-rotate-right"></i> Atualizar
+            </button>
+          </div>
+          <div class="section-card-body">
+            <div class="bloqueio-list" id="bloqueiosList">
+              <div class="bloqueio-empty"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SERVIÇOS ===== -->
+      <div class="view" id="viewServicos">
+        <div class="section-card" style="margin-bottom:1.5rem;">
+          <div class="section-card-header">
+            <span class="section-card-title"><i class="fa-solid fa-scissors"></i> Serviços — Editar Preço</span>
+          </div>
+          <div id="servicosEditorList">
+            <div style="padding:1.5rem;text-align:center;color:var(--muted);">
+              <i class="fa-solid fa-spinner fa-spin"></i> Carregando...
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title"><i class="fa-solid fa-gift"></i> Combos — Editar Preço</span>
+          </div>
+          <div id="combosEditorList">
+            <div style="padding:1.5rem;text-align:center;color:var(--muted);">
+              <i class="fa-solid fa-spinner fa-spin"></i> Carregando...
+            </div>
+          </div>
+        </div>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.8rem;padding:0 .2rem;">
+          Dica: use o formato <strong>A partir de R$ 200,00</strong> para serviços com valor variável.
+        </p>
       </div>
 
       <!-- ===== CONFIGURAÇÕES ===== -->
@@ -1156,6 +1282,149 @@ async function renderFaturamento() {
 }
 
 /* ============================================================
+   BLOQUEIOS
+============================================================ */
+function toggleBloqHours() {
+  const tipo = document.getElementById('bloqTipo').value;
+  const fields = document.getElementById('bloqHoursFields');
+  fields.style.display = tipo === 'hora' ? 'grid' : 'none';
+}
+
+async function renderBloqueios() {
+  const list = document.getElementById('bloqueiosList');
+  list.innerHTML = '<div class="bloqueio-empty"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</div>';
+  const r = await adminFetch('GET', '/admin/bloqueios');
+  if (!r.ok) { list.innerHTML = '<div class="bloqueio-empty">Erro ao carregar bloqueios.</div>'; return; }
+  const items = await r.json();
+  if (!items.length) {
+    list.innerHTML = '<div class="bloqueio-empty"><i class="fa-solid fa-lock-open" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>Nenhum bloqueio cadastrado.</div>';
+    return;
+  }
+  const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  list.innerHTML = items.map(b => {
+    const [y, m, d] = b.data.split('-');
+    const dow = new Date(+y, +m - 1, +d).getDay();
+    const dateLabel = `${days[dow]}, ${d}/${m}/${y}`;
+    const timeLabel = b.dia_inteiro ? '' : `${(b.hora_inicio||'').substring(0,5)} – ${(b.hora_fim||'').substring(0,5)}`;
+    return `
+      <div class="bloqueio-item">
+        <i class="fa-solid fa-lock" style="color:var(--rose);font-size:1.1rem;flex-shrink:0;"></i>
+        <div class="bloqueio-info">
+          <div class="bloqueio-date">${dateLabel} ${b.dia_inteiro ? '<span class="tag-dia-inteiro">Dia inteiro</span>' : ''}</div>
+          ${timeLabel ? `<div class="bloqueio-time"><i class="fa-regular fa-clock"></i> ${timeLabel}</div>` : ''}
+          ${b.motivo ? `<div class="bloqueio-motivo">${escHtml(b.motivo)}</div>` : ''}
+        </div>
+        <button class="btn-icon del" title="Remover bloqueio" onclick="deleteBloqueio(${b.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('btnAddBloqueio').addEventListener('click', async () => {
+  const msgEl = document.getElementById('bloqMsg');
+  msgEl.className = 'alert-msg';
+  const dt        = document.getElementById('bloqData').value;
+  const tipo      = document.getElementById('bloqTipo').value;
+  const inicio    = document.getElementById('bloqInicio').value;
+  const fim       = document.getElementById('bloqFim').value;
+  const motivo    = document.getElementById('bloqMotivo').value.trim();
+
+  if (!dt) { msgEl.textContent = 'Selecione uma data.'; msgEl.classList.add('error'); return; }
+  if (tipo === 'hora' && (!inicio || !fim)) {
+    msgEl.textContent = 'Informe o horário de início e fim.'; msgEl.classList.add('error'); return;
+  }
+  if (tipo === 'hora' && inicio >= fim) {
+    msgEl.textContent = 'O horário de fim deve ser após o início.'; msgEl.classList.add('error'); return;
+  }
+
+  const body = { data: dt, dia_inteiro: tipo === 'dia', motivo };
+  if (tipo === 'hora') { body.hora_inicio = inicio; body.hora_fim = fim; }
+
+  const r = await adminFetch('POST', '/admin/bloqueio', body);
+  if (r.ok) {
+    msgEl.textContent = 'Bloqueio adicionado com sucesso!'; msgEl.classList.add('success');
+    document.getElementById('bloqData').value = '';
+    document.getElementById('bloqMotivo').value = '';
+    document.getElementById('bloqInicio').value = '';
+    document.getElementById('bloqFim').value = '';
+    renderBloqueios();
+  } else {
+    const err = await r.json().catch(() => ({}));
+    msgEl.textContent = err.error || 'Erro ao salvar. Tente novamente.'; msgEl.classList.add('error');
+  }
+});
+
+async function deleteBloqueio(id) {
+  if (!confirm('Remover este bloqueio?')) return;
+  await adminFetch('DELETE', `/admin/bloqueio/${id}`);
+  renderBloqueios();
+}
+
+/* ============================================================
+   SERVIÇOS — editor de preços
+============================================================ */
+async function renderServicosEditor() {
+  if (!SALON_CONFIG) return;
+
+  const services = SALON_CONFIG.servicos || [];
+  const combos   = SALON_CONFIG.combos   || [];
+
+  const svcList = document.getElementById('servicosEditorList');
+  const cmbList = document.getElementById('combosEditorList');
+
+  if (!services.length) {
+    svcList.innerHTML = '<p style="padding:1rem;color:var(--muted);font-size:.85rem;">Nenhum serviço cadastrado.</p>';
+  } else {
+    svcList.innerHTML = services.map(s => `
+      <div class="svc-edit-row">
+        <span class="svc-edit-name">${escHtml(s.nome)}</span>
+        <input class="svc-edit-input" id="svc_${s.id}" value="${escHtml(s.preco||'')}" placeholder="ex: A partir de R$ 50,00"/>
+        <button class="btn-svc-save" onclick="saveServico(${s.id}, 'servico')">Salvar</button>
+        <span class="svc-saved-ok" id="ok_svc_${s.id}"><i class="fa-solid fa-check"></i></span>
+      </div>
+    `).join('');
+  }
+
+  if (!combos.length) {
+    cmbList.innerHTML = '<p style="padding:1rem;color:var(--muted);font-size:.85rem;">Nenhum combo cadastrado.</p>';
+  } else {
+    cmbList.innerHTML = combos.map(c => `
+      <div class="svc-edit-row">
+        <span class="svc-edit-name">${escHtml(c.nome)}</span>
+        <input class="svc-edit-input" id="cmb_${c.id}" value="${escHtml(c.preco||'')}" placeholder="ex: A partir de R$ 150,00"/>
+        <button class="btn-svc-save" onclick="saveServico(${c.id}, 'combo')">Salvar</button>
+        <span class="svc-saved-ok" id="ok_cmb_${c.id}"><i class="fa-solid fa-check"></i></span>
+      </div>
+    `).join('');
+  }
+}
+
+async function saveServico(id, tipo) {
+  const prefix = tipo === 'combo' ? 'cmb' : 'svc';
+  const input  = document.getElementById(`${prefix}_${id}`);
+  const okEl   = document.getElementById(`ok_${prefix}_${id}`);
+  const preco  = input.value.trim();
+  if (!preco) { input.style.borderColor = 'var(--red)'; return; }
+  input.style.borderColor = '';
+
+  const route = tipo === 'combo' ? `/admin/combo/${id}` : `/admin/servico/${id}`;
+  const r = await adminFetch('PATCH', route, { preco });
+  if (r.ok) {
+    okEl.style.display = 'inline';
+    setTimeout(() => { okEl.style.display = 'none'; }, 2500);
+    // Atualiza cache local
+    if (SALON_CONFIG) {
+      const arr = tipo === 'combo' ? SALON_CONFIG.combos : SALON_CONFIG.servicos;
+      const item = arr.find(x => x.id === id);
+      if (item) item.preco = preco;
+    }
+  } else {
+    input.style.borderColor = 'var(--red)';
+  }
+}
+
+/* ============================================================
    NAVIGATION
 ============================================================ */
 const viewMap = {
@@ -1163,6 +1432,8 @@ const viewMap = {
   agenda:       { el:'viewAgenda',       title:'Agendamentos' },
   clientes:     { el:'viewClientes',     title:'Clientes' },
   faturamento:  { el:'viewFaturamento',  title:'Faturamento' },
+  bloqueios:    { el:'viewBloqueios',    title:'Bloqueios' },
+  servicos:     { el:'viewServicos',     title:'Serviços' },
   configuracoes:{ el:'viewConfiguracoes',title:'Configurações' },
 };
 
@@ -1175,6 +1446,8 @@ function switchView(key) {
   if (key==='agenda')       { renderBookingsTable(); }
   if (key==='clientes')     { renderClients(); }
   if (key==='faturamento')  { renderFaturamento(); }
+  if (key==='bloqueios')    { renderBloqueios(); }
+  if (key==='servicos')     { renderServicosEditor(); }
 }
 
 document.querySelectorAll('[data-view]').forEach(el=>{
