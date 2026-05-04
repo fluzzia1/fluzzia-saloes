@@ -9,6 +9,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ddithxstvpgwkqckljze.s
 
 app.use(express.json());
 
+/* força HTTPS no Heroku (x-forwarded-proto = http → redirect 301) */
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(301, 'https://' + req.headers.host + req.url);
+  }
+  next();
+});
+
 /* normaliza barras duplas/triplas → redirect 301 para URL limpa */
 app.use((req, res, next) => {
   if (/\/{2,}/.test(req.path)) {
